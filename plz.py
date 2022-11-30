@@ -18,20 +18,18 @@ def downloadzip(url, name):
     os.mkdir(docpath)
 
   html=request.urlopen(url) 
-  html_contents=str(html.read().decode("UTF8"))
+  html_contents=str(html.read().decode("cp949"))
   series_list = re.findall(r"(https)(.+)(.zip\">)", html_contents) 
   for url in series_list: 
     tmp_url="".join(url) 
     final_url = tmp_url[:tmp_url.find('"')]
     while True:
       try:
-        wget.download(final_url, out=path)
+        zipname = wget.download(final_url, out=path)
         unzip(zipname, name);
         break
       except:
         continue
-
-    
 
 
 def unzip(filename, name):
@@ -44,7 +42,7 @@ def unzip(filename, name):
         if tmpfile.endswith("doc") or tmpfile.endswith("docx"):
            zipObj.extract(tmpfile, path=path)
            subprocess.call(['soffice', '--headless', '--convert-to', 'txt:Text', path + tmpfile,'-outdir', homepath + "/txts/" + name + "/"])
-        elif tmpfile.endswith("zip"):
+        if tmpfile.endswith("zip"):
           zipObj.extract(tmpfile)
           with zipfile.ZipFile(tmpfile, 'r') as test:
             tmplist = test.namelist()
@@ -62,7 +60,6 @@ def unzip(filename, name):
 
 
 if __name__ == '__main__':
-  remain = ["TSGS3_92Bis_Harbin", "TSGS3_92_Dalian", "TSGS3_88_Dali", "TSGS3_94_Kochi", "TSGS3_96AH_Chongqing", "TSGS3_96_Wroclaw", "TSGS3_90_Gothenburg", "TSGS3_103e"]
   homepath = os.getcwd()
   if (not os.path.isdir(homepath + "/Docs")):
     os.mkdir(homepath + "/Docs")
@@ -71,10 +68,21 @@ if __name__ == '__main__':
   if (not os.path.isdir(homepath + "/zips")):
     os.mkdir(homepath + "/zips")
   url="https://www.3gpp.org/ftp/tsg_sa/WG3_Security/"
+  html=request.urlopen(url) 
+  html_contents=str(html.read().decode("cp949"))
+  series_list = re.findall(r"(https)(.+)(>TSGS3)", html_contents) 
 
+  for url in series_list: 
+    tmp_url="".join(url) 
+    final_url = tmp_url[:tmp_url.find('"')] + "/Docs"
 
-  for aa in remain: 
-    final_url = url + aa + "/Docs/"
+    try:
+      version = int(re.findall(r'\d+',final_url[final_url.find("TSGS3_") + len("TSGS3_"):])[0])
+      if not ((108 <= version and version <= 109) or (74 <= version and version <= 76)):
+        continue
+    except:
+      break
     print("Downloading : " + final_url)
+
     name = final_url[final_url.find("TSGS3_"):final_url.find("/Docs")]
     downloadzip(final_url, name)
